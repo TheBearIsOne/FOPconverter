@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<fop version="1.0">
+    <strict-validation>true</strict-validation>
+    <strict-configuration>true</strict-configuration>
+    <base>./</base>
+    <renderers>
+        <renderer mime="application/pdf">
+            <fonts>
+                <directory recursive="true">./fonts</directory>
+                <auto-detect/>
+            </fonts>
+        </renderer>
+        <renderer mime="application/postscript"/>
+        <renderer mime="application/x-pcl"/>
+        <renderer mime="application/x-afp"/>
+        <renderer mime="image/x-afp+ioca"/>
+        <renderer mime="application/rtf"/>
+    </renderers>
+</fop>

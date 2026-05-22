@@ -1,0 +1,159 @@
+openapi: 3.0.3
+info:
+  title: FOP Converter API
+  version: v1
+servers:
+  - url: http://localhost:8080
+paths:
+  /api/v1/convert:
+    post:
+      summary: Submit a conversion job asynchronously
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConvertJsonRequest'
+          multipart/form-data:
+            schema:
+              type: object
+              required: [payloadType, outputFormat, primaryDocument]
+              properties:
+                payloadType:
+                  type: string
+                  enum: [XSL_FO, XML_XSLT]
+                outputFormat:
+                  type: string
+                  enum: [PDF, POSTSCRIPT, PCL, AFP, IOCA, RTF, XML, TXT]
+                primaryDocument:
+                  type: string
+                  format: binary
+                secondaryDocument:
+                  type: string
+                  format: binary
+                correlationId:
+                  type: string
+                callbackUrl:
+                  type: string
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitConversionResponse'
+  /api/v1/convert/sync:
+    post:
+      summary: Convert a document synchronously
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConvertJsonRequest'
+          multipart/form-data:
+            schema:
+              type: object
+              required: [payloadType, outputFormat, primaryDocument]
+              properties:
+                payloadType:
+                  type: string
+                outputFormat:
+                  type: string
+                primaryDocument:
+                  type: string
+                  format: binary
+                secondaryDocument:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Converted file
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+  /api/v1/jobs/{jobId}:
+    get:
+      summary: Get job status
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Job status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobStatusResponse'
+  /api/v1/jobs/{jobId}/download:
+    get:
+      summary: Download completed artifact
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Converted file
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+components:
+  schemas:
+    ConvertJsonRequest:
+      type: object
+      required: [payloadType, outputFormat, primaryDocumentBase64]
+      properties:
+        payloadType:
+          type: string
+          enum: [XSL_FO, XML_XSLT]
+        outputFormat:
+          type: string
+          enum: [PDF, POSTSCRIPT, PCL, AFP, IOCA, RTF, XML, TXT]
+        primaryDocumentBase64:
+          type: string
+        primaryFileName:
+          type: string
+        secondaryDocumentBase64:
+          type: string
+        secondaryFileName:
+          type: string
+        correlationId:
+          type: string
+        callbackUrl:
+          type: string
+    SubmitConversionResponse:
+      type: object
+      properties:
+        jobId:
+          type: string
+          format: uuid
+        status:
+          type: string
+        statusUrl:
+          type: string
+    JobStatusResponse:
+      type: object
+      properties:
+        jobId:
+          type: string
+          format: uuid
+        status:
+          type: string
+        downloadUrl:
+          type: string
+        errorCode:
+          type: string
+        errorDetails:
+          type: string

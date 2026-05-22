@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+  <fo:layout-master-set>
+    <fo:simple-page-master master-name="a4" page-width="21cm" page-height="29.7cm" margin="1.5cm">
+      <fo:region-body/>
+    </fo:simple-page-master>
+  </fo:layout-master-set>
+
+  <fo:page-sequence master-reference="a4">
+    <fo:flow flow-name="xsl-region-body">
+      <fo:block font-size="18pt" font-weight="bold" space-after="10pt">RTL Font Sample</fo:block>
+      <fo:block color="#555555" space-after="12pt">Recommended font families: Noto Naskh Arabic, Amiri, Noto Sans Hebrew, DejaVu Sans. Right-to-left scripts need matching glyph coverage and bidi-aware rendering.</fo:block>
+
+      <fo:block font-family="Noto Naskh Arabic, Amiri, DejaVu Sans, Helvetica" font-size="12pt" font-weight="bold" space-before="8pt" space-after="4pt">Arabic</fo:block>
+      <fo:block font-family="Noto Naskh Arabic, Amiri, DejaVu Sans, Helvetica" font-size="12pt" line-height="18pt" direction="rtl" unicode-bidi="embed" text-align="end" space-after="10pt">هذا المثال يوضح مستند XSL-FO يحتوي على نص عربي ويحتاج إلى خط يدعم الحروف العربية بشكل صحيح.</fo:block>
+
+      <fo:block font-family="Noto Sans Hebrew, DejaVu Sans, Helvetica" font-size="12pt" font-weight="bold" space-before="8pt" space-after="4pt">Hebrew</fo:block>
+      <fo:block font-family="Noto Sans Hebrew, DejaVu Sans, Helvetica" font-size="12pt" line-height="18pt" direction="rtl" unicode-bidi="embed" text-align="end">דוגמה זו בודקת רינדור של טקסט עברי, כיווניות מימין לשמאל וכיסוי גליפים מתאים.</fo:block>
+    </fo:flow>
+  </fo:page-sequence>
+</fo:root>

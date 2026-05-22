@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+  <fo:layout-master-set>
+    <fo:simple-page-master master-name="a4" page-width="21cm" page-height="29.7cm" margin="1.5cm">
+      <fo:region-body/>
+    </fo:simple-page-master>
+  </fo:layout-master-set>
+
+  <fo:page-sequence master-reference="a4">
+    <fo:flow flow-name="xsl-region-body" font-family="DejaVu Sans, Liberation Sans, Arial, Segoe UI, Helvetica">
+      <fo:block font-size="18pt" font-weight="bold" space-after="10pt">Cyrillic Font Sample</fo:block>
+      <fo:block color="#555555" space-after="12pt">Recommended font families: DejaVu Sans, Liberation Sans, Arial Unicode MS. Without Cyrillic-capable fonts Apache FOP will fall back and may log missing glyph warnings.</fo:block>
+
+      <fo:block font-family="DejaVu Sans, Liberation Sans, Arial Unicode MS, Helvetica" font-size="12pt" font-weight="bold" space-before="8pt" space-after="4pt">Russian</fo:block>
+      <fo:block font-family="DejaVu Sans, Liberation Sans, Arial Unicode MS, Helvetica" font-size="11pt" line-height="16pt" space-after="8pt">Сервис конвертации документов формирует PDF, PostScript и RTF из XSL-FO и XML + XSLT.</fo:block>
+
+      <fo:block font-family="DejaVu Serif, Times New Roman, Times" font-size="12pt" font-weight="bold" space-before="8pt" space-after="4pt">Ukrainian</fo:block>
+      <fo:block font-family="DejaVu Serif, Times New Roman, Times" font-size="11pt" line-height="16pt" space-after="8pt">Швидка перевірка шрифтів допомагає зрозуміти, чи підтримує середовище кирилицю без втрати символів.</fo:block>
+
+      <fo:block font-family="DejaVu Sans Mono, Courier New, Courier" font-size="12pt" font-weight="bold" space-before="8pt" space-after="4pt">Bulgarian / Monospace</fo:block>
+      <fo:block font-family="DejaVu Sans Mono, Courier New, Courier" font-size="10pt" line-height="15pt">Етикет: BG-2026-11
+Статус: обработка
+Резултат: успешно генериран PDF</fo:block>
+    </fo:flow>
+  </fo:page-sequence>
+</fo:root>

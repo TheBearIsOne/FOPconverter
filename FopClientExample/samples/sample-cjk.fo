@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+  <fo:layout-master-set>
+    <fo:simple-page-master master-name="a4" page-width="21cm" page-height="29.7cm" margin="1.5cm">
+      <fo:region-body/>
+    </fo:simple-page-master>
+  </fo:layout-master-set>
+
+  <fo:page-sequence master-reference="a4">
+    <fo:flow flow-name="xsl-region-body">
+      <fo:block font-size="18pt" font-weight="bold" space-after="10pt">CJK Font Sample</fo:block>
+      <fo:block color="#555555" space-after="12pt">Recommended font families: Noto Sans CJK SC / JP / KR or Source Han Sans. Default Base 14 fonts do not cover Chinese, Japanese, and Korean glyph ranges.</fo:block>
+
+      <fo:block font-family="Noto Sans CJK SC, Source Han Sans SC, DejaVu Sans, Helvetica" font-size="12pt" font-weight="bold" space-before="8pt" space-after="4pt">Simplified Chinese</fo:block>
+      <fo:block font-family="Noto Sans CJK SC, Source Han Sans SC, DejaVu Sans, Helvetica" font-size="11pt" line-height="16pt" space-after="8pt">文档转换服务可以把 XSL-FO 内容渲染为 PDF，并保留分页、页眉页脚和表格布局。</fo:block>
+
+      <fo:block font-family="Noto Serif CJK JP, Source Han Serif JP, DejaVu Serif, Times" font-size="12pt" font-weight="bold" space-before="8pt" space-after="4pt">Japanese</fo:block>
+      <fo:block font-family="Noto Serif CJK JP, Source Han Serif JP, DejaVu Serif, Times" font-size="11pt" line-height="16pt" space-after="8pt">このサンプルは、日本語の段落や見出しを含む XSL-FO を検証するためのものです。</fo:block>
+
+      <fo:block font-family="Noto Sans CJK KR, Source Han Sans K, DejaVu Sans, Helvetica" font-size="12pt" font-weight="bold" space-before="8pt" space-after="4pt">Korean</fo:block>
+      <fo:block font-family="Noto Sans CJK KR, Source Han Sans K, DejaVu Sans, Helvetica" font-size="11pt" line-height="16pt">이 예제는 한국어 텍스트와 다양한 글꼴 구성이 PDF로 어떻게 렌더링되는지 확인합니다.</fo:block>
+    </fo:flow>
+  </fo:page-sequence>
+</fo:root>

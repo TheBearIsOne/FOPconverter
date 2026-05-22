@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+  <fo:layout-master-set>
+    <fo:simple-page-master master-name="a4" page-width="21cm" page-height="29.7cm" margin="1.5cm">
+      <fo:region-body/>
+    </fo:simple-page-master>
+  </fo:layout-master-set>
+
+  <fo:page-sequence master-reference="a4">
+    <fo:flow flow-name="xsl-region-body">
+      <fo:block font-size="18pt" font-weight="bold" space-after="10pt">XSL-FO Font Showcase</fo:block>
+      <fo:block color="#555555" space-after="12pt">Base 14 fonts that work well with the default Apache FOP setup.</fo:block>
+
+      <fo:block font-family="Helvetica" font-size="12pt" font-weight="bold" space-before="8pt" space-after="4pt">Helvetica / Sans Serif</fo:block>
+      <fo:block font-family="Helvetica" font-size="11pt" line-height="15pt" space-after="8pt">English: The quick brown fox jumps over the lazy dog. French: Voix ambiguë d’un cœur qui, au zéphyr, préfère les jattes de kiwi. German: Franz jagt im komplett verwahrlosten Taxi quer durch Bayern.</fo:block>
+
+      <fo:block font-family="Times" font-size="12pt" font-weight="bold" space-before="8pt" space-after="4pt">Times / Serif</fo:block>
+      <fo:block font-family="Times" font-size="11pt" line-height="15pt" space-after="8pt">Spanish: El veloz murciélago hindú comía feliz cardillo y kiwi. Italian: Quel vituperabile xenofobo zelante assaggia il whisky ed esclama: alleluia! Portuguese: Luziânia fez quinze quilômetros de bike sob chuva intensa.</fo:block>
+
+      <fo:block font-family="Courier" font-size="12pt" font-weight="bold" space-before="8pt" space-after="4pt">Courier / Monospace</fo:block>
+      <fo:block font-family="Courier" font-size="10pt" line-height="14pt" white-space-collapse="false" wrap-option="no-wrap">invoice_id   locale   amount   currency
+INV-2026-001 en-US    1250.50  USD
+INV-2026-002 fr-FR     845.10  EUR
+INV-2026-003 de-DE     999.99  EUR</fo:block>
+    </fo:flow>
+  </fo:page-sequence>
+</fo:root>

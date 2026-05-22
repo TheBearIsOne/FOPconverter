@@ -1,0 +1,12 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: converter-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["app:8080", "worker:8080"]
+
+  - job_name: nats
+    static_configs:
+      - targets: ["nats:8222"]

@@ -1,0 +1,54 @@
+spring:
+  application:
+    name: fop-converter-service
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  threads:
+    virtual:
+      enabled: true
+
+  nats:
+    url: ${NATS_URL:nats://localhost:4222}
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+  tracing:
+    sampling:
+      probability: 1.0
+
+converter:
+  max-input-bytes: ${CONVERTER_MAX_INPUT_BYTES:10485760}
+  sync-timeout: ${CONVERTER_SYNC_TIMEOUT:60s}
+  cache-ttl: ${CONVERTER_CACHE_TTL:6h}
+  max-concurrent-conversions: ${CONVERTER_MAX_CONCURRENT:8}
+  storage:
+    artifact-directory: ${CONVERTER_ARTIFACT_DIR:artifacts}
+  nats:
+    stream-name: ${CONVERTER_NATS_STREAM:converter-jobs}
+    requests-subject: ${CONVERTER_NATS_REQUESTS_SUBJECT:converter.jobs.requests}
+    updates-subject: ${CONVERTER_NATS_UPDATES_SUBJECT:converter.jobs.updates}
+    durable-consumer: ${CONVERTER_NATS_DURABLE:converter-worker}
+    enabled: ${CONVERTER_NATS_ENABLED:true}
+  webhook:
+    enabled: ${CONVERTER_WEBHOOK_ENABLED:false}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html

@@ -1,0 +1,8 @@
+logging:
+  level:
+    root: INFO
+    com.example.fopconverter: DEBUG
+
+converter:
+  webhook:
+    enabled: false
