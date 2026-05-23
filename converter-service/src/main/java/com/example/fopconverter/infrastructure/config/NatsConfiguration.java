@@ -10,11 +10,12 @@ import io.nats.client.api.StreamConfiguration;
 import java.io.IOException;
 import java.time.Duration;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 @Configuration
+@ConditionalOnProperty(prefix = "converter.nats", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class NatsConfiguration {
     @Bean(destroyMethod = "close")
     Connection natsConnection(@Value("${spring.nats.url:nats://localhost:4222}") String natsUrl)
@@ -27,24 +28,15 @@ public class NatsConfiguration {
     }
 
     @Bean
-    JetStream jetStream(Connection connection) throws IOException {
+    JetStream jetStream(Connection connection, JetStreamManagement management, ConversionProperties properties)
+            throws Exception {
+        ensureStream(management, properties);
         return connection.jetStream();
     }
 
     @Bean
     JetStreamManagement jetStreamManagement(Connection connection) throws IOException {
         return connection.jetStreamManagement();
-    }
-
-    @Bean
-    ApplicationRunner jetStreamBootstrap(JetStreamManagement management, ConversionProperties properties) {
-        return arguments -> {
-            if (!properties.getNats().isEnabled()) {
-                return;
-            }
-
-            ensureStream(management, properties);
-        };
     }
 
     private void ensureStream(JetStreamManagement management, ConversionProperties properties) throws Exception {

@@ -38,24 +38,31 @@ public sealed class DemoOrchestrator
 
         var asyncRequest = await BuildXmlXsltRequestAsync(cancellationToken);
         var accepted = await _client.ConvertAsyncAsync(asyncRequest, cancellationToken);
-        _logger.LogInformation("Async conversion accepted. JobId={JobId}", accepted.JobId);
+        _logger.LogInformation(
+            "Async conversion accepted. JobId={JobId}, StatusUrl={StatusUrl}",
+            accepted.JobId,
+            accepted.StatusUrl ?? $"/api/v1/jobs/{accepted.JobId}");
 
-        var jobStatus = await PollUntilCompletedAsync(accepted.JobId, cancellationToken);
-        var download = await _client.DownloadAsync(jobStatus.JobId, cancellationToken);
+        var jobStatus = await PollUntilCompletedAsync(accepted, cancellationToken);
+        var download = await _client.DownloadAsync(jobStatus, cancellationToken);
         var asyncPath = Path.Combine(_sampleOptions.OutputDirectory, download.FileName);
         await File.WriteAllBytesAsync(asyncPath, download.Bytes, cancellationToken);
         _logger.LogInformation("Async conversion completed. Saved to {Path}", asyncPath);
     }
 
-    private async Task<JobStatusResponse> PollUntilCompletedAsync(Guid jobId, CancellationToken cancellationToken)
+    private async Task<JobStatusResponse> PollUntilCompletedAsync(AcceptedJobResponse acceptedJob, CancellationToken cancellationToken)
     {
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeoutCts.CancelAfter(TimeSpan.FromSeconds(_apiOptions.PollingTimeoutSeconds));
 
         while (!timeoutCts.Token.IsCancellationRequested)
         {
-            var status = await _client.GetJobStatusAsync(jobId, timeoutCts.Token);
-            _logger.LogInformation("Job {JobId} status: {Status}", jobId, status.Status);
+            var status = await _client.GetJobStatusAsync(acceptedJob, timeoutCts.Token);
+            _logger.LogInformation(
+                "Job {JobId} status: {Status}, DownloadUrl={DownloadUrl}",
+                acceptedJob.JobId,
+                status.Status,
+                status.DownloadUrl ?? "<pending>");
             if (string.Equals(status.Status, "completed", StringComparison.OrdinalIgnoreCase))
             {
                 return status;
@@ -69,7 +76,7 @@ public sealed class DemoOrchestrator
             await Task.Delay(TimeSpan.FromSeconds(_apiOptions.PollingIntervalSeconds), timeoutCts.Token);
         }
 
-        throw new TimeoutException($"Polling timed out for job {jobId}.");
+        throw new TimeoutException($"Polling timed out for job {acceptedJob.JobId}.");
     }
 
     private async Task<ConversionUploadRequest> BuildFoRequestAsync(CancellationToken cancellationToken)

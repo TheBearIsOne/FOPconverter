@@ -19,12 +19,14 @@ public class GetJobStatusService implements GetJobStatusUseCase {
     public JobStatusResponse getStatus(UUID jobId) {
         return jobStatusStorePort
                 .findById(jobId)
-                .map(job -> new JobStatusResponse(
-                        job.jobId(),
-                        job.status().name().toLowerCase(),
-                        job.artifactLocation() == null ? null : "/api/v1/jobs/" + job.jobId() + "/download",
-                        job.errorCode(),
-                        job.errorDetails()))
+            .map(jobStatus -> new JobStatusResponse(
+                jobStatus.jobId(),
+                jobStatus.status().name().toLowerCase(),
+                jobStatus.artifactLocation() == null
+                    ? null
+                    : "/api/v1/jobs/" + jobStatus.jobId() + "/download",
+                jobStatus.errorCode(),
+                jobStatus.errorDetails()))
                 .orElseThrow(() -> new ConversionException("JOB_NOT_FOUND", "Job not found: " + jobId));
     }
 }

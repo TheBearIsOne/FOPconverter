@@ -1,11 +1,13 @@
 package com.example.fopconverter.infrastructure.health;
 
 import io.nats.client.Connection;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.stereotype.Component;
 
 @Component("nats")
+@ConditionalOnProperty(prefix = "converter.nats", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class NatsHealthIndicator implements HealthIndicator {
     private final Connection connection;
 

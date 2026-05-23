@@ -33,8 +33,6 @@ paths:
                   format: binary
                 correlationId:
                   type: string
-                callbackUrl:
-                  type: string
       responses:
         '202':
           description: Accepted
@@ -130,8 +128,6 @@ components:
         secondaryFileName:
           type: string
         correlationId:
-          type: string
-        callbackUrl:
           type: string
     SubmitConversionResponse:
       type: object

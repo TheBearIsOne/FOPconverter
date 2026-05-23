@@ -46,8 +46,6 @@ converter:
     updates-subject: ${CONVERTER_NATS_UPDATES_SUBJECT:converter.jobs.updates}
     durable-consumer: ${CONVERTER_NATS_DURABLE:converter-worker}
     enabled: ${CONVERTER_NATS_ENABLED:true}
-  webhook:
-    enabled: ${CONVERTER_WEBHOOK_ENABLED:false}
 
 springdoc:
   swagger-ui:

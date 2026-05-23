@@ -1,9 +1,6 @@
 spring:
   main:
-    web-application-type: servlet
-
-server:
-  port: 8080
+    web-application-type: none
 
 converter:
   nats:

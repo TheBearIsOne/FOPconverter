@@ -9,5 +9,4 @@ public record ConversionCommand(
         ConversionDocument primaryDocument,
         ConversionDocument secondaryDocument,
         OutputFormat outputFormat,
-        String correlationId,
-        String callbackUrl) {}
+        String correlationId) {}

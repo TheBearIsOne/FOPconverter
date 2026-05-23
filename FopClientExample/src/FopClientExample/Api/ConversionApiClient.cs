@@ -52,8 +52,7 @@ public sealed class ConversionApiClient : IConversionApiClient
             request.PrimaryFileName,
             request.SecondaryBytes is null ? null : Convert.ToBase64String(request.SecondaryBytes),
             request.SecondaryFileName,
-            request.CorrelationId,
-            null);
+            request.CorrelationId);
 
         using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/v1/convert")
         {
@@ -71,19 +70,62 @@ public sealed class ConversionApiClient : IConversionApiClient
 
     public async Task<JobStatusResponse> GetJobStatusAsync(Guid jobId, CancellationToken cancellationToken)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/jobs/{jobId}");
+        return await GetJobStatusAsync(CreateRequestUri($"/api/v1/jobs/{jobId}"), cancellationToken);
+    }
+
+    public async Task<JobStatusResponse> GetJobStatusAsync(AcceptedJobResponse acceptedJob, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(acceptedJob);
+        return await GetJobStatusAsync(ResolveStatusUri(acceptedJob), cancellationToken);
+    }
+
+    public async Task<DownloadedConversionFile> DownloadAsync(Guid jobId, CancellationToken cancellationToken)
+    {
+        return await DownloadAsync(CreateRequestUri($"/api/v1/jobs/{jobId}/download"), cancellationToken);
+    }
+
+    public async Task<DownloadedConversionFile> DownloadAsync(JobStatusResponse jobStatus, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(jobStatus);
+        return await DownloadAsync(ResolveDownloadUri(jobStatus), cancellationToken);
+    }
+
+    private async Task<JobStatusResponse> GetJobStatusAsync(Uri requestUri, CancellationToken cancellationToken)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
         using var response = await SendWithRetryAsync(() => CloneRequestAsync(request), cancellationToken);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<JobStatusResponse>(JsonOptions, cancellationToken)
                ?? throw new InvalidOperationException("Job status response was empty.");
     }
 
-    public async Task<DownloadedConversionFile> DownloadAsync(Guid jobId, CancellationToken cancellationToken)
+    private async Task<DownloadedConversionFile> DownloadAsync(Uri requestUri, CancellationToken cancellationToken)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/jobs/{jobId}/download");
+        using var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
         using var response = await SendWithRetryAsync(() => CloneRequestAsync(request), cancellationToken);
         response.EnsureSuccessStatusCode();
         return await ReadDownloadAsync(response, null, cancellationToken);
+    }
+
+    private static Uri ResolveStatusUri(AcceptedJobResponse acceptedJob)
+    {
+        return CreateRequestUri(string.IsNullOrWhiteSpace(acceptedJob.StatusUrl)
+            ? $"/api/v1/jobs/{acceptedJob.JobId}"
+            : acceptedJob.StatusUrl);
+    }
+
+    private static Uri ResolveDownloadUri(JobStatusResponse jobStatus)
+    {
+        return CreateRequestUri(string.IsNullOrWhiteSpace(jobStatus.DownloadUrl)
+            ? $"/api/v1/jobs/{jobStatus.JobId}/download"
+            : jobStatus.DownloadUrl);
+    }
+
+    private static Uri CreateRequestUri(string relativeOrAbsoluteUri)
+    {
+        return Uri.TryCreate(relativeOrAbsoluteUri, UriKind.Absolute, out var absoluteUri)
+            ? absoluteUri
+            : new Uri(relativeOrAbsoluteUri, UriKind.Relative);
     }
 
     private async Task<HttpResponseMessage> SendWithRetryAsync(
@@ -187,6 +229,5 @@ public sealed class ConversionApiClient : IConversionApiClient
         string PrimaryFileName,
         string? SecondaryDocumentBase64,
         string? SecondaryFileName,
-        string CorrelationId,
-        string? CallbackUrl);
+        string CorrelationId);
 }

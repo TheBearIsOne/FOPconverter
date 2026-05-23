@@ -11,7 +11,6 @@ public class ConversionProperties {
     private int maxConcurrentConversions = 8;
     private Storage storage = new Storage();
     private Nats nats = new Nats();
-    private Webhook webhook = new Webhook();
 
     public int getMaxInputBytes() {
         return maxInputBytes;
@@ -59,14 +58,6 @@ public class ConversionProperties {
 
     public void setNats(Nats nats) {
         this.nats = nats;
-    }
-
-    public Webhook getWebhook() {
-        return webhook;
-    }
-
-    public void setWebhook(Webhook webhook) {
-        this.webhook = webhook;
     }
 
     public static class Storage {
@@ -119,18 +110,6 @@ public class ConversionProperties {
         public void setDurableConsumer(String durableConsumer) {
             this.durableConsumer = durableConsumer;
         }
-
-        public boolean isEnabled() {
-            return enabled;
-        }
-
-        public void setEnabled(boolean enabled) {
-            this.enabled = enabled;
-        }
-    }
-
-    public static class Webhook {
-        private boolean enabled;
 
         public boolean isEnabled() {
             return enabled;

@@ -29,6 +29,27 @@ function Invoke-JsonGet {
     return Invoke-RestMethod -Uri $Uri -Method Get
 }
 
+function Invoke-WithRetry {
+    param(
+        [scriptblock]$Action,
+        [string]$Description,
+        [int]$Attempts = 5,
+        [int]$IntervalMilliseconds = 1000
+    )
+
+    for ($attempt = 1; $attempt -le $Attempts; $attempt++) {
+        try {
+            return & $Action
+        } catch {
+            if ($attempt -eq $Attempts) {
+                throw "${Description} failed after $Attempts attempts. $($_.Exception.Message)"
+            }
+
+            Start-Sleep -Milliseconds $IntervalMilliseconds
+        }
+    }
+}
+
 function Wait-ForApiHealth {
     param(
         [string]$HealthUrl,
@@ -120,9 +141,15 @@ if ($asyncFile.Length -le 0) {
 }
 
 Write-Step "Refreshing Elasticsearch and checking ingested log indices"
-Invoke-WebRequest -Uri "$ElasticsearchUrl/_refresh" -Method Post | Out-Null
-$logIndices = Invoke-WebRequest -UseBasicParsing -Uri "$ElasticsearchUrl/_cat/indices/fopconverter-logs-*?h=index,docs.count"
-$logRoleAggregation = Invoke-RestMethod -Method Post -Uri "$ElasticsearchUrl/fopconverter-logs-*/_search" -ContentType "application/json" -Body '{"size":0,"aggs":{"service_roles":{"terms":{"field":"service_role","size":10}}}}'
+$null = Invoke-WithRetry -Description "Elasticsearch refresh" -Action {
+    Invoke-WebRequest -Uri "$ElasticsearchUrl/_refresh" -Method Post
+}
+$logIndices = Invoke-WithRetry -Description "Elasticsearch log index lookup" -Action {
+    Invoke-WebRequest -UseBasicParsing -Uri "$ElasticsearchUrl/_cat/indices/fopconverter-logs-*?h=index,docs.count"
+}
+$logRoleAggregation = Invoke-WithRetry -Description "Elasticsearch service role aggregation" -Action {
+    Invoke-RestMethod -Method Post -Uri "$ElasticsearchUrl/fopconverter-logs-*/_search" -ContentType "application/json" -Body '{"size":0,"aggs":{"service_roles":{"terms":{"field":"service_role","size":10}}}}'
+}
 $serviceRoles = $logRoleAggregation.aggregations.service_roles.buckets |
     ForEach-Object { $_.key } |
     Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
@@ -137,7 +164,9 @@ if ($serviceRoles -notcontains 'app' -or $serviceRoles -notcontains 'worker') {
 }
 
 Write-Step "Checking Kibana data view bootstrap"
-$kibanaDataView = Invoke-RestMethod -Method Get -Uri "$KibanaUrl/api/data_views/data_view/fopconverter-logs" -Headers @{ 'kbn-xsrf' = 'smoke-test' }
+$kibanaDataView = Invoke-WithRetry -Description "Kibana data view lookup" -Action {
+    Invoke-RestMethod -Method Get -Uri "$KibanaUrl/api/data_views/data_view/fopconverter-logs" -Headers @{ 'kbn-xsrf' = 'smoke-test' }
+}
 if ($kibanaDataView.data_view.id -ne 'fopconverter-logs') {
     throw "Kibana data view fopconverter-logs was not found."
 }

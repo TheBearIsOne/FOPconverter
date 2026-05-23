@@ -21,15 +21,15 @@ public class DownloadArtifactService implements DownloadArtifactUseCase {
 
     @Override
     public SyncConversionResponse download(UUID jobId) {
-        var job = jobStatusStorePort
+        var jobStatus = jobStatusStorePort
                 .findById(jobId)
                 .orElseThrow(() -> new ConversionException("JOB_NOT_FOUND", "Job not found: " + jobId));
-        if (job.status() != JobStatus.COMPLETED || job.artifactLocation() == null) {
+        if (jobStatus.status() != JobStatus.COMPLETED || jobStatus.artifactLocation() == null) {
             throw new ConversionException("ARTIFACT_NOT_READY", "Artifact is not ready for job: " + jobId);
         }
 
-        byte[] bytes = artifactStoragePort.read(job.artifactLocation());
-        String fileName = "conversion-" + jobId + "." + job.outputFormat().fileExtension();
-        return new SyncConversionResponse(bytes, fileName, job.outputFormat().mimeType(), 0L);
+        byte[] bytes = artifactStoragePort.read(jobStatus.artifactLocation());
+        String fileName = "conversion-" + jobId + "." + jobStatus.outputFormat().fileExtension();
+        return new SyncConversionResponse(bytes, fileName, jobStatus.outputFormat().mimeType(), 0L);
     }
 }

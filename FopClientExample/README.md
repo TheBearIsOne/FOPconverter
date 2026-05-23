@@ -5,7 +5,7 @@
 ## Возможности
 
 - sync конвертация через `/api/v1/convert/sync`
-- async submit + polling + download через `/api/v1/convert` и `/api/v1/jobs/{id}`
+- async submit + polling + download через `/api/v1/convert` с использованием `statusUrl` и `downloadUrl` из API-ответов
 - `IHttpClientFactory`, `async/await`, retry на transient HTTP errors
 - `CancellationToken` во всей цепочке вызовов
 - Serilog structured logging
@@ -33,8 +33,8 @@ dotnet run --project FopClientExample/src/FopClientExample/FopClientExample.cspr
 1. Клиент читает `sample.fo` и вызывает sync endpoint.
 2. Сохраняет результат в output directory.
 3. Читает `sample.xml` + `sample.xslt` и вызывает async endpoint через JSON base64.
-4. Поллит job status до `completed`.
-5. Скачивает итоговый artifact и сохраняет его в output directory.
+4. Поллит job status по `statusUrl` из `202 Accepted` ответа до `completed`.
+5. Скачивает итоговый artifact по `downloadUrl` из job status ответа и сохраняет его в output directory.
 
 ## Additional FO Samples
 
