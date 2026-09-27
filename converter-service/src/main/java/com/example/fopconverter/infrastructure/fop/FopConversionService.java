@@ -17,6 +17,9 @@ import java.net.URI;
 import java.nio.file.Path;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.Semaphore;
 import javax.xml.XMLConstants;
 import javax.xml.transform.Result;
@@ -104,7 +107,7 @@ public class FopConversionService implements ConversionEnginePort {
     private FopFactory initializeFopFactory(ResourceLoader resourceLoader) {
         Path basePath = Path.of("").toAbsolutePath().normalize();
         URI baseUri = basePath.toUri();
-        ResourceResolver resourceResolver = createSecureResourceResolver(basePath.resolve("fonts"));
+        ResourceResolver resourceResolver = createSecureResourceResolver(trustedFontDirectories(basePath));
         try {
             Resource resource = resourceLoader.getResource("classpath:fop/fop.xconf");
             if (resource.exists()) {
@@ -248,13 +251,36 @@ public class FopConversionService implements ConversionEnginePort {
         };
     }
 
-    static ResourceResolver createSecureResourceResolver(Path allowedFontsDirectory) {
+    private static List<Path> trustedFontDirectories(Path basePath) {
+        List<Path> directories = new ArrayList<>();
+        directories.add(basePath.resolve("fonts"));
+        directories.add(Path.of(System.getProperty("java.home"), "lib", "fonts"));
+
+        String operatingSystem = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
+        if (operatingSystem.contains("win")) {
+            String windowsDirectory = System.getenv("WINDIR");
+            if (windowsDirectory != null && !windowsDirectory.isBlank()) {
+                directories.add(Path.of(windowsDirectory, "Fonts"));
+            }
+        } else if (operatingSystem.contains("mac")) {
+            directories.add(Path.of("/System/Library/Fonts"));
+            directories.add(Path.of("/Library/Fonts"));
+        } else {
+            directories.add(Path.of("/usr/share/fonts"));
+            directories.add(Path.of("/usr/local/share/fonts"));
+        }
+        return directories;
+    }
+
+    static ResourceResolver createSecureResourceResolver(List<Path> allowedFontsDirectories) {
         ResourceResolver delegate = ResourceResolverFactory.createDefaultResourceResolver();
-        Path normalizedFontsDirectory = allowedFontsDirectory.toAbsolutePath().normalize();
+        List<Path> normalizedFontsDirectories = allowedFontsDirectories.stream()
+                .map(path -> path.toAbsolutePath().normalize())
+                .toList();
         return new ResourceResolver() {
             @Override
             public org.apache.xmlgraphics.io.Resource getResource(URI uri) throws IOException {
-                if (isBlockedFileOrRemoteResource(uri, normalizedFontsDirectory)) {
+                if (isBlockedFileOrRemoteResource(uri, normalizedFontsDirectories)) {
                     throw new IOException(BLOCKED_RESOURCE_MESSAGE + ": " + uri);
                 }
                 return delegate.getResource(uri);
@@ -262,7 +288,7 @@ public class FopConversionService implements ConversionEnginePort {
 
             @Override
             public OutputStream getOutputStream(URI uri) throws IOException {
-                if (isBlockedFileOrRemoteResource(uri, normalizedFontsDirectory)) {
+                if (isBlockedFileOrRemoteResource(uri, normalizedFontsDirectories)) {
                     throw new IOException(BLOCKED_RESOURCE_MESSAGE + ": " + uri);
                 }
                 return delegate.getOutputStream(uri);
@@ -270,7 +296,7 @@ public class FopConversionService implements ConversionEnginePort {
         };
     }
 
-    private static boolean isBlockedFileOrRemoteResource(URI uri, Path allowedFontsDirectory) {
+    private static boolean isBlockedFileOrRemoteResource(URI uri, List<Path> allowedFontsDirectories) {
         if (uri == null || uri.getScheme() == null) {
             return false;
         }
@@ -285,7 +311,7 @@ public class FopConversionService implements ConversionEnginePort {
 
         try {
             Path resourcePath = Path.of(uri).toAbsolutePath().normalize();
-            return !resourcePath.startsWith(allowedFontsDirectory);
+            return allowedFontsDirectories.stream().noneMatch(resourcePath::startsWith);
         } catch (IllegalArgumentException exception) {
             return true;
         }

@@ -18,6 +18,8 @@ RUN apt-get update \
 		fonts-noto-core \
 	&& rm -rf /var/lib/apt/lists/* \
 	&& fc-cache -f \
+	&& mkdir -p /app/fonts \
+	&& cp -a /usr/share/fonts/truetype/dejavu/. /app/fonts/ \
 	&& useradd --system --create-home spring
 COPY --from=build /workspace/converter-service/target/converter-service-1.0.0-SNAPSHOT.jar app.jar
 COPY fonts fonts

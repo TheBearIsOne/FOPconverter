@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.DefaultResourceLoader;
 
@@ -52,10 +53,21 @@ class FopConversionServiceTest {
         Path externalImage = Files.createTempFile("external-image", ".png");
         Files.write(externalImage, new byte[] {1, 2, 3});
 
-        assertThatThrownBy(() -> FopConversionService.createSecureResourceResolver(Path.of("fonts"))
+        assertThatThrownBy(() -> FopConversionService.createSecureResourceResolver(List.of(Path.of("fonts")))
                         .getResource(externalImage.toUri()))
                 .isInstanceOf(IOException.class)
                 .hasMessageContaining("External resource access is not allowed");
+    }
+
+    @Test
+    void shouldAllowFontFileFromTrustedFontDirectory() throws Exception {
+        Path fontsDirectory = Files.createTempDirectory("trusted-fonts");
+        Path fontFile = fontsDirectory.resolve("test-font.ttf");
+        Files.write(fontFile, new byte[] {1, 2, 3});
+
+        assertThat(FopConversionService.createSecureResourceResolver(List.of(fontsDirectory))
+                        .getResource(fontFile.toUri()))
+                .isNotNull();
     }
 
     @Test

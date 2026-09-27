@@ -68,21 +68,26 @@ flowchart LR
 
 ## Быстрый старт
 
-### Полный локальный стек
+### Локальный запуск
 
 ```powershell
-mvn -q -pl converter-service -am package -DskipTests
 docker compose up -d --build
+```
+
+По умолчанию запускаются только сервис конвертации, async worker, Redis и NATS.
+
+### Стек с observability
+
+```powershell
+docker compose -f docker-compose.observability.yml up -d --build
 ```
 
 ### Полезные URL
 
 - Swagger UI: `http://localhost:8080/swagger-ui/index.html`
 - Health: `http://localhost:8080/actuator/health`
-- Prometheus: `http://localhost:9090`
-- Grafana: `http://localhost:3000`
-- Kibana: `http://localhost:5601`
-- Elasticsearch: `http://localhost:9200`
+
+Для observability stack дополнительно доступны Prometheus (`http://localhost:9090`), Grafana (`http://localhost:3000`), Kibana (`http://localhost:5601`) и Elasticsearch (`http://localhost:9200`).
 
 ### Пересборка backend
 

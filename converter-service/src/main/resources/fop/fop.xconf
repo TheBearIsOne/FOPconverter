@@ -7,13 +7,16 @@
         <renderer mime="application/pdf">
             <fonts>
                 <directory recursive="true">./fonts</directory>
-                <auto-detect/>
+                <auto-detect />
+                <font kerning="yes" embed-url="file:/app/fonts/DejaVuSans.ttf">
+                    <font-triplet name="DejaVu Sans" style="normal" weight="normal" />
+                </font>
             </fonts>
         </renderer>
-        <renderer mime="application/postscript"/>
-        <renderer mime="application/x-pcl"/>
-        <renderer mime="application/x-afp"/>
-        <renderer mime="image/x-afp+ioca"/>
-        <renderer mime="application/rtf"/>
+        <renderer mime="application/postscript" />
+        <renderer mime="application/x-pcl" />
+        <renderer mime="application/x-afp" />
+        <renderer mime="image/x-afp+ioca" />
+        <renderer mime="application/rtf" />
     </renderers>
 </fop>
