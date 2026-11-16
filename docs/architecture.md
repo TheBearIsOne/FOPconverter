@@ -1,22 +1,22 @@
 # FOP Converter Architecture
 
-Этот документ описывает внутреннюю архитектуру проекта, роли компонентов, flows endpoint-ов и используемые архитектурные подходы.
+This document describes the internal architecture of the project, the roles of the components, the endpoint flows, and the architectural approaches used.
 
-## 1. Обзор системы
+## 1. System overview
 
-FOP Converter — это сервис конвертации документов, который поддерживает два разных режима:
+FOP Converter is a document conversion service that supports two different modes:
 
-- sync conversion для короткого HTTP request/response сценария
-- async conversion для тяжёлых задач, которые должны обрабатываться worker-процессом вне request lifecycle
+- sync conversion for a short HTTP request/response flow
+- async conversion for heavy jobs that must be processed by a worker outside the request lifecycle
 
-Система разделяет:
+The system separates:
 
-- HTTP API и async worker
-- очередь сообщений и хранение payload
-- status snapshots и binary artifacts
-- доменную модель и infrastructure adapters
+- HTTP API and async worker
+- message queue and payload storage
+- status snapshots and binary artifacts
+- domain model and infrastructure adapters
 
-## 2. Системная диаграмма
+## 2. System diagram
 
 ```mermaid
 flowchart LR
@@ -65,25 +65,25 @@ flowchart LR
     Worker -->|traces / telemetry| Otel
 ```
 
-## 3. Структура backend по слоям
+## 3. Backend structure by layer
 
-Фактическая структура backend-кода организована по package-слоям:
+The actual backend code is organized into package layers:
 
 - `domain`
 - `application`
 - `interfaceadapter`
 - `infrastructure`
 
-### Назначение слоёв
+### Layer responsibilities
 
-| Слой | Назначение |
+| Layer | Purpose |
 | --- | --- |
-| `domain` | Инварианты, статусы, value objects, domain model без Spring и без инфраструктурных зависимостей |
-| `application` | Use cases, DTO, orchestration, application services, порты |
-| `interfaceadapter` | Web adapters, controllers, exception mapping |
-| `infrastructure` | Redis, NATS, filesystem, Apache FOP, Spring configuration |
+| `domain` | Invariants, statuses, value objects, and the domain model without Spring or infrastructure dependencies |
+| `application` | Use cases, DTOs, orchestration, application services, and ports |
+| `interfaceadapter` | Web adapters, controllers, and exception mapping |
+| `infrastructure` | Redis, NATS, filesystem, Apache FOP, and Spring configuration |
 
-### UML: ключевые backend-компоненты
+### UML: key backend components
 
 ```mermaid
 classDiagram
@@ -161,16 +161,16 @@ classDiagram
 
 ## 4. API surface
 
-Основной контракт определён в [openapi/fop-converter-openapi.yaml](../openapi/fop-converter-openapi.yaml).
+The main contract is defined in [openapi/fop-converter-openapi.yaml](../openapi/fop-converter-openapi.yaml).
 
-### Поддерживаемые payload types
+### Supported payload types
 
-| Payload type | Описание |
+| Payload type | Description |
 | --- | --- |
-| `XSL_FO` | Один XSL-FO документ |
-| `XML_XSLT` | XML + XSLT документы |
+| `XSL_FO` | A single XSL-FO document |
+| `XML_XSLT` | XML + XSLT documents |
 
-### Поддерживаемые output formats
+### Supported output formats
 
 - `PDF`
 - `POSTSCRIPT`
@@ -181,9 +181,9 @@ classDiagram
 - `XML`
 - `TXT`
 
-### Таблица endpoint-ов
+### Endpoint table
 
-| Method | Endpoint | Назначение | Controller |
+| Method | Endpoint | Purpose | Controller |
 | --- | --- | --- | --- |
 | `POST` | `/api/v1/convert/sync` | sync conversion | `ConvertController` |
 | `POST` | `/api/v1/convert` | async submit | `ConvertController` |
@@ -268,9 +268,39 @@ sequenceDiagram
     JobController-->>Client: 200 OK + binary attachment
 ```
 
+### 5.3 Code execution flow (sync timeout path)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Client
+    participant Controller as ConvertController
+    participant Executor as conversionExecutorService
+    participant Task as Running conversion task
+    participant UseCase as ConvertSynchronouslyUseCase
+    participant Engine as FopConversionService
+    participant Timer as Timeout scheduler
+
+    Client->>Controller: POST /api/v1/convert/sync
+    Controller->>Controller: validate payload, size, format, callbackUrl
+    Controller->>Executor: submit(async conversion task)
+    Executor->>Task: start task
+    Task->>UseCase: convert(command)
+    UseCase->>Engine: render(document, outputFormat, correlationId)
+    Engine-->>UseCase: SyncConversionResponse
+    UseCase-->>Task: bytes + fileName + contentType
+    Task-->>Controller: complete success response
+    Controller-->>Client: 200 OK + binary attachment
+
+    Note over Timer,Task: Timeout branch if conversion exceeds configured sync-timeout
+    Timer->>Task: cancel(true) after deadline
+    Task-->>Controller: TimeoutException / ConversionException
+    Controller-->>Client: 409/500 style timeout failure (SYNC_TIMEOUT)
+```
+
 ## 6. State model
 
-Async job проходит явный lifecycle.
+Async jobs move through an explicit lifecycle.
 
 ```mermaid
 stateDiagram-v2
@@ -283,60 +313,60 @@ stateDiagram-v2
     FAILED --> [*]
 ```
 
-Статусы основаны на domain enum `JobStatus`:
+Statuses are based on the domain enum `JobStatus`:
 
 - `PENDING`
 - `PROCESSING`
 - `COMPLETED`
 - `FAILED`
 
-## 7. Архитектурные шаблоны и решения
+## 7. Architectural patterns and decisions
 
 ### 7.1 Clean Architecture / Ports and Adapters
 
-- Controllers не вызывают infrastructure напрямую.
-- Application layer зависит от портов, а не от конкретных реализаций Redis, NATS, filesystem или FOP.
-- Infrastructure реализует порты, а не определяет orchestration.
+- Controllers do not call infrastructure directly.
+- The application layer depends on ports rather than concrete Redis, NATS, filesystem, or FOP implementations.
+- Infrastructure implements the ports rather than orchestrating the flow.
 
 ### 7.2 Message-driven async processing
 
-- Async submit отделён от worker execution.
-- HTTP request завершается раньше, чем фактический conversion pipeline.
-- Очередь не хранит большой payload, только metadata.
+- Async submission is separated from worker execution.
+- The HTTP request completes before the actual conversion pipeline.
+- The queue stores metadata only, not the large payload itself.
 
 ### 7.3 File-backed payload handoff
 
-- Payload сохраняется в shared filesystem.
-- В JetStream передаётся `payloadLocation`.
-- Worker читает payload по ссылке и удаляет его после terminal processing.
+- Payloads are stored in a shared filesystem.
+- A `payloadLocation` is passed through JetStream.
+- The worker reads the payload by reference and deletes it after terminal processing.
 
-Это снижает размер сообщения и делает очередь более устойчивой к большим документам.
+This reduces queue message size and makes the queue more resilient for large documents.
 
-### 7.4 Explicit state machine и status snapshots
+### 7.4 Explicit state machine and status snapshots
 
-- Redis хранит status snapshot.
-- Binary artifact хранится отдельно.
-- API читает status отдельно от фактического файла.
+- Redis stores the status snapshot.
+- Binary artifacts are stored separately.
+- The API reads status separately from the actual file.
 
 ### 7.5 Resilience
 
-- Ограничение размера документов проверяется на boundary.
-- `callbackUrl` явно отвергается, потому что delivery pipeline не реализован.
-- Sync path защищён timeout и best-effort cancellation.
-- Async pipeline различает poison message и transient failure.
+- Document size limits are enforced at the boundary.
+- `callbackUrl` is explicitly rejected because the delivery pipeline is not implemented.
+- The sync path is protected by a timeout and best-effort cancellation.
+- The async pipeline distinguishes poison messages from transient failures.
 
 ### 7.6 Observability by design
 
-- JSON logs создаются и в `app`, и в `worker`.
-- Logstash индексирует logs в Elasticsearch.
-- Prometheus/Grafana используются для metrics.
-- OpenTelemetry Collector принимает traces/telemetry.
+- JSON logs are produced by both `app` and `worker`.
+- Logstash indexes logs into Elasticsearch.
+- Prometheus and Grafana are used for metrics.
+- The OpenTelemetry Collector receives traces and telemetry.
 
-## 8. Runtime topology через Docker Compose
+## 8. Runtime topology through Docker Compose
 
-| Service | Роль |
+| Service | Role |
 | --- | --- |
-| `app` | HTTP API, sync conversion, async submit, status/download endpoints |
+| `app` | HTTP API, sync conversion, async submit, and status/download endpoints |
 | `worker` | Headless async worker |
 | `redis` | Status snapshots |
 | `nats` | JetStream queue |
@@ -350,27 +380,27 @@ stateDiagram-v2
 
 ### Runtime-specific notes
 
-- `app` и `worker` используют один image, но разные Spring profiles.
-- `worker` запускается с `async-worker` и не поднимает HTTP server.
-- Shared volume `app-artifacts` используется для payload, artifacts и logs.
-- NATS stream создаётся до старта consumer subscription, чтобы worker мог безопасно стартовать даже на чистом окружении.
+- `app` and `worker` use the same image but different Spring profiles.
+- `worker` starts with the `async-worker` profile and does not expose an HTTP server.
+- The shared volume `app-artifacts` is used for payloads, artifacts, and logs.
+- The NATS stream is created before the consumer subscription is started so the worker can safely start even in a fresh environment.
 
 ## 9. .NET client integration
 
-[FopClientExample](../FopClientExample) показывает внешний consumer-side сценарий использования API.
+[FopClientExample](../FopClientExample) shows the external consumer-side usage of the API.
 
-Особенности клиента:
+Client features:
 
 - `IHttpClientFactory`
-- retry на transient HTTP errors
-- polling async status
-- использование `statusUrl` и `downloadUrl` из API responses
-- fallback на legacy `jobId` routes, если URL не переданы
+- retry on transient HTTP errors
+- polling for async status
+- using `statusUrl` and `downloadUrl` from API responses
+- fallback to legacy `jobId` routes if URLs are not provided
 
-## 10. Что важно помнить при развитии проекта
+## 10. Things to keep in mind during project evolution
 
-- Не переносить binary payload обратно в queue message.
-- Не смешивать HTTP concerns и async worker orchestration.
-- Не хранить binary artifact внутри status store.
-- Не добавлять "почти поддержанный" public contract, если реальной delivery semantics для него нет.
-- При изменении API routes или response URLs обновлять и OpenAPI, и .NET client, и smoke tests.
+- Do not move binary payloads back into the queue message.
+- Do not mix HTTP concerns with async worker orchestration.
+- Do not store binary artifacts in the status store.
+- Do not add a "mostly supported" public contract if the actual delivery semantics are not implemented.
+- When changing API routes or response URLs, update the OpenAPI spec, the .NET client, and the smoke tests.

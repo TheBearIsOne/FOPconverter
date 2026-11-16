@@ -1,32 +1,32 @@
 # FOP Converter
 
-FOP Converter — сервис конвертации документов на Java 21 / Spring Boot 3 с Apache FOP, поддерживающий:
+FOP Converter is a Java 21 / Spring Boot 3 service for converting documents with Apache FOP. The project supports:
 
-- синхронный сценарий `request -> binary response`
-- асинхронный сценарий `submit -> queue -> worker -> status -> download`
+- a synchronous flow: `request -> binary response`
+- an asynchronous flow: `submit -> queue -> worker -> status -> download`
 
-Репозиторий включает backend, полный локальный runtime stack для очередей и observability, а также пример .NET 8 клиента.
+The repository includes the backend service, a full local runtime stack for queues and observability, and a .NET 8 sample client.
 
-## Что в проекте
+## Project layout
 
-| Путь | Назначение |
+| Path | Purpose |
 | --- | --- |
-| `converter-service` | Основной backend сервис. |
-| `FopClientExample` | Консольный .NET 8 клиент. |
-| `openapi/fop-converter-openapi.yaml` | Публичный API-контракт. |
-| `docker-compose.yml` | Локальный runtime stack. |
-| `observability` | Конфигурация metrics, logs, tracing и dashboards. |
-| `smoke-test.ps1` | End-to-end smoke test для sync, async и observability. |
-| `font-smoke-test.ps1` | Smoke test для multilingual/font-heavy samples. |
+| `converter-service` | Main backend service |
+| `FopClientExample` | Console .NET 8 client |
+| `openapi/fop-converter-openapi.yaml` | Public API contract |
+| `docker-compose.yml` | Local runtime stack |
+| `observability` | Metrics, logs, tracing, and dashboards |
+| `smoke-test.ps1` | End-to-end smoke test for sync, async, and observability |
+| `font-smoke-test.ps1` | Smoke test for multilingual and font-heavy samples |
 
-## Документация
+## Documentation
 
-- Подробная архитектура, endpoint flows и UML: [docs/architecture.md](docs/architecture.md)
-- Публичный контракт API: [openapi/fop-converter-openapi.yaml](openapi/fop-converter-openapi.yaml)
-- Документация .NET клиента: [FopClientExample/README.md](FopClientExample/README.md)
-- Локальные шрифты и fonts setup: [fonts/README.md](fonts/README.md)
+- Architecture, endpoint flows, and UML: [docs/architecture.md](docs/architecture.md)
+- Public API contract: [openapi/fop-converter-openapi.yaml](openapi/fop-converter-openapi.yaml)
+- .NET client documentation: [FopClientExample/README.md](FopClientExample/README.md)
+- Local fonts setup: [fonts/README.md](fonts/README.md)
 
-## Краткая схема
+## High-level flow
 
 ```mermaid
 flowchart LR
@@ -39,21 +39,21 @@ flowchart LR
     Worker --> Redis
 ```
 
-## API кратко
+## API at a glance
 
-| Method | Endpoint | Назначение |
+| Method | Endpoint | Purpose |
 | --- | --- | --- |
-| `POST` | `/api/v1/convert/sync` | Синхронная конвертация |
-| `POST` | `/api/v1/convert` | Асинхронный submit |
-| `GET` | `/api/v1/jobs/{jobId}` | Статус async job |
-| `GET` | `/api/v1/jobs/{jobId}/download` | Скачивание готового artifact |
+| `POST` | `/api/v1/convert/sync` | Synchronous conversion |
+| `POST` | `/api/v1/convert` | Async submit |
+| `GET` | `/api/v1/jobs/{jobId}` | Async job status |
+| `GET` | `/api/v1/jobs/{jobId}/download` | Download artifact |
 
-Поддерживаемые payload types:
+Supported payload types:
 
 - `XSL_FO`
 - `XML_XSLT`
 
-Поддерживаемые output formats:
+Supported output formats:
 
 - `PDF`
 - `POSTSCRIPT`
@@ -64,38 +64,51 @@ flowchart LR
 - `XML`
 - `TXT`
 
-Подробные sequence diagrams для endpoint-ов вынесены в [docs/architecture.md](docs/architecture.md).
+Detailed sequence diagrams for the endpoints live in [docs/architecture.md](docs/architecture.md).
 
-## Быстрый старт
+## Quick start
 
-### Локальный запуск
+### Local startup
 
 ```powershell
 docker compose up -d --build
 ```
 
-По умолчанию запускаются только сервис конвертации, async worker, Redis и NATS.
+This starts the conversion service, async worker, Redis, and NATS by default.
 
-### Стек с observability
+### Observability stack
 
 ```powershell
 docker compose -f docker-compose.observability.yml up -d --build
 ```
 
-### Полезные URL
+### Useful URLs
 
 - Swagger UI: `http://localhost:8080/swagger-ui/index.html`
 - Health: `http://localhost:8080/actuator/health`
 
-Для observability stack дополнительно доступны Prometheus (`http://localhost:9090`), Grafana (`http://localhost:3000`), Kibana (`http://localhost:5601`) и Elasticsearch (`http://localhost:9200`).
+For the observability stack, Prometheus, Grafana, Kibana, and Elasticsearch are also exposed.
 
-### Пересборка backend
+### Rebuild backend
 
 ```powershell
 docker compose up -d --build app worker
 ```
 
-## Проверка проекта
+## Timeout handling
+
+The service does handle synchronous timeouts. The property is configured in [converter-service/src/main/resources/application.yml](converter-service/src/main/resources/application.yml):
+
+```yaml
+converter:
+  sync-timeout: ${CONVERTER_SYNC_TIMEOUT:60s}
+```
+
+At runtime the controller uses this value in `ConvertController.executeSync()` and schedules a timeout with `CompletableFuture.delayedExecutor(...)`. When the deadline is reached it calls `runningTask.cancel(true)` and completes the future exceptionally with `ConversionException("SYNC_TIMEOUT", "Synchronous conversion timed out")`.
+
+This means slow synchronous conversions are interrupted and the caller receives a timeout error instead of hanging indefinitely.
+
+## Project validation
 
 ### Java tests
 
@@ -117,7 +130,7 @@ dotnet run --project FopClientExample/src/FopClientExample/FopClientExample.cspr
 .\font-smoke-test.ps1
 ```
 
-## Примеры вызовов
+## Example requests
 
 ### Sync: XSL-FO -> PDF
 
@@ -148,29 +161,29 @@ curl.exe -X POST http://localhost:8080/api/v1/convert -H "Content-Type: applicat
 
 ## Troubleshooting
 
-### Async job остаётся в `pending`
+### Async job remains in `pending`
 
-- Проверьте `worker`: `docker compose logs worker --tail 200`
-- Проверьте `nats` и `redis`: `docker compose ps`
-- Если backend только что пересобран, повторите запрос после завершения startup warm-up
+- Check the worker logs: `docker compose logs worker --tail 200`
+- Check NATS and Redis: `docker compose ps`
+- If the backend was rebuilt recently, retry after the startup warm-up completes
 
-### Проблемы с Elasticsearch или Kibana в smoke test
+### Elasticsearch or Kibana issues during smoke tests
 
-- Сначала проверьте `http://localhost:9200/_cluster/health`
-- Убедитесь, что `kibana` и `observability-bootstrap` успели завершить bootstrap
-- Повторный запуск [smoke-test.ps1](smoke-test.ps1) уже учитывает transient warm-up ошибки observability HTTP calls
+- Check `http://localhost:9200/_cluster/health`
+- Ensure Kibana and the observability bootstrap completed
+- Re-running [smoke-test.ps1](smoke-test.ps1) already accounts for transient startup errors in observability HTTP calls
 
-### Предупреждения по glyphs или fonts
+### Glyph and font warnings
 
-- Для стабильного результата используйте Docker compose stack
-- Для локального запуска вне Docker подготовьте шрифты по [fonts/README.md](fonts/README.md)
-- Samples для проверки лежат в [FopClientExample/samples](FopClientExample/samples)
+- Use the Docker compose stack for stable results
+- For local runs outside Docker, prepare fonts using [fonts/README.md](fonts/README.md)
+- Sample files are in [FopClientExample/samples](FopClientExample/samples)
 
-### .NET client и URL статуса/скачивания
+### .NET client and status/download URLs
 
-- Клиент использует `statusUrl` и `downloadUrl`, если сервер их возвращает
-- При отсутствии этих URL он fallback-ится к `GET /api/v1/jobs/{jobId}` и `GET /api/v1/jobs/{jobId}/download`
+- The client uses `statusUrl` and `downloadUrl` when returned by the server
+- If those URLs are absent, it falls back to `GET /api/v1/jobs/{jobId}` and `GET /api/v1/jobs/{jobId}/download`
 
-## Что дальше читать
+## Next steps
 
-Если нужен полный разбор архитектуры, паттернов, endpoint call flows и Mermaid UML-диаграмм, переходите в [docs/architecture.md](docs/architecture.md).
+For a full architecture review, endpoint call flows, and Mermaid UML diagrams, see [docs/architecture.md](docs/architecture.md).
