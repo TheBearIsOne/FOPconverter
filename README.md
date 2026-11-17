@@ -187,3 +187,17 @@ curl.exe -X POST http://localhost:8080/api/v1/convert -H "Content-Type: applicat
 ## Next steps
 
 For a full architecture review, endpoint call flows, and Mermaid UML diagrams, see [docs/architecture.md](docs/architecture.md).
+
+## Additional info
+
+## Short answer
+
+Assuming “NAT” means the project’s **NATS JetStream** queue: yes, it can be disabled with `CONVERTER_NATS_ENABLED=false` (or `converter.nats.enabled=false`). This is a startup configuration change, not a runtime switch. It disables the NATS connection, publisher, and worker consumer. The synchronous endpoint continues to work, but the asynchronous endpoint does not convert directly: it saves the job/payload, then the disabled queue adapter throws `ASYNC_UNAVAILABLE`, mapped to HTTP 503. Because no worker consumes it, the stored request payload is left behind. See `application.yml`, `DisabledJobQueuePort.java`, `SubmitConversionService.java`, and `GlobalExceptionHandler.java`.
+
+Disabling NATS does **not** disable Redis or the filesystem. The synchronous flow still uses Redis for its conversion cache.
+
+## What happens for each request
+
+- **One document, synchronous:** `POST /api/v1/convert/sync` executes conversion in the app process and returns the document bytes in that HTTP response. It bypasses NATS. The flow checks the Redis cache first; a cache hit skips FOP. On a miss, the FOP engine runs. The sync timeout defaults to 60 seconds. `ConvertController.java`, `ConvertSynchronouslyService.java`
+- **One document, asynchronous:** `POST /api/v1/convert` stores a pending status in Redis, writes the input payload to shared storage, publishes job metadata to JetStream, and returns `202 Accepted`. The worker later reads the payload, converts it, saves an artifact and final status; the client polls and downloads the result. It avoids keeping the conversion request open, but adds queue/storage/status/download steps and does not make the conversion itself faster. `architecture.md`, `ProcessQueuedConversionService.java`
+- **Batch:** There is no batch API in this project. A batch means sending one request per document. Async submissions become separate jobs and can wait independently in the queue; the included .NET example demonstrates individual sync.
