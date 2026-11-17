@@ -20,12 +20,12 @@ FOP Converter — это сервис конвертации документо�
 
 ```mermaid
 flowchart LR
-    Client["API consumer / curl / .NET client"]
-    App["app\nSpring Boot HTTP API"]
-    Worker["worker\nasync-worker profile"]
-    Redis["Redis\njob status snapshots"]
-    Nats["NATS JetStream\njob metadata queue"]
-    Volume["Shared volume /app/artifacts\nrequests/ + results/ + logs/"]
+    Client["API consumer<br/>curl / .NET client"]
+    App["app<br/>Spring Boot HTTP API"]
+    Worker["worker<br/>async-worker profile"]
+    Redis["Redis<br/>job status snapshots"]
+    Nats["NATS JetStream<br/>job metadata queue"]
+    Volume["Shared volume /app/artifacts<br/>requests/ + results/ + logs/"]
     Fop["Apache FOP engine"]
     Logstash["Logstash"]
     Elasticsearch["Elasticsearch"]
@@ -34,35 +34,35 @@ flowchart LR
     Grafana["Grafana"]
     Otel["OpenTelemetry Collector"]
 
-    Client -->|POST /api/v1/convert/sync| App
-    Client -->|POST /api/v1/convert| App
-    Client -->|GET /api/v1/jobs/{jobId}| App
-    Client -->|GET /api/v1/jobs/{jobId}/download| App
+    Client -->|"POST /api/v1/convert/sync"| App
+    Client -->|"POST /api/v1/convert"| App
+    Client -->|"GET /api/v1/jobs/{jobId}"| App
+    Client -->|"GET /api/v1/jobs/{jobId}/download"| App
 
-    App -->|save status| Redis
-    App -->|store payload| Volume
-    App -->|publish metadata| Nats
+    App -->|"save status"| Redis
+    App -->|"store payload"| Volume
+    App -->|"publish metadata"| Nats
 
-    Worker -->|consume| Nats
-    Worker -->|read payload| Volume
-    Worker -->|render| Fop
-    Worker -->|store artifact| Volume
-    Worker -->|update status| Redis
+    Worker -->|"consume"| Nats
+    Worker -->|"read payload"| Volume
+    Worker -->|"render"| Fop
+    Worker -->|"store artifact"| Volume
+    Worker -->|"update status"| Redis
 
-    App -->|read status| Redis
-    App -->|read artifact| Volume
+    App -->|"read status"| Redis
+    App -->|"read artifact"| Volume
 
-    App -->|metrics| Prometheus
-    Prometheus --> Grafana
+    App -->|"metrics"| Prometheus
+    Prometheus -->|"metrics / dashboard data"| Grafana
 
-    App -->|json logs| Volume
-    Worker -->|json logs| Volume
-    Volume --> Logstash
-    Logstash --> Elasticsearch
-    Elasticsearch --> Kibana
+    App -->|"json logs"| Volume
+    Worker -->|"json logs"| Volume
+    Volume -->|"log files"| Logstash
+    Logstash -->|"index logs"| Elasticsearch
+    Elasticsearch -->|"search / visualize"| Kibana
 
-    App -->|traces / telemetry| Otel
-    Worker -->|traces / telemetry| Otel
+    App -->|"traces / telemetry"| Otel
+    Worker -->|"traces / telemetry"| Otel
 ```
 
 ## 3. Структура backend по слоям
