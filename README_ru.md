@@ -39,7 +39,7 @@ flowchart LR
     Worker --> Redis
 ```
 
-## API в 2 словах
+## API Ручки
 
 | Method | Endpoint | Назначение |
 | --- | --- | --- |
